@@ -5,7 +5,7 @@ import type { Field } from "./music";
 /** Space kept clear at the bottom for the control band (px). */
 export const BAND = 104;
 /** The note-name rail on the left edge (px). */
-export const RAIL = 34;
+export const RAIL = 38;
 /** The top row's distance from the top edge (px). */
 const TOP = 40;
 

@@ -1,13 +1,16 @@
 // Air Melody: draw lines over the camera and a looping playhead plays them.
-// Height is pitch, across is time. The picture is NeonLayer.tsx, drawing is
-// DrawInput.tsx, the sound is audio.ts played by sequencer.ts, and the
-// note names and controls are Controls.tsx.
-import { useEffect } from "react";
+// Height is pitch, across is time. The picture is NeonLayer.tsx; drawing is
+// HandPen.tsx (pinch in the air) and DrawInput.tsx (touch and mouse); the
+// sound is audio.ts played by sequencer.ts; the note names and controls are
+// Controls.tsx, and the ghost-hand hint is Hint.tsx.
+import { Suspense, useEffect } from "react";
 import { useThree } from "@react-three/fiber";
 
 import { Controls } from "./Controls";
 import { showDemo } from "./demo";
 import { DrawInput } from "./DrawInput";
+import { HandPen } from "./HandPen";
+import { Hint } from "./Hint";
 import { fieldFor } from "./layout";
 import { NeonLayer } from "./NeonLayer";
 import { sequencer } from "./sequencer";
@@ -31,7 +34,11 @@ export const MelodyScene = () => {
     <>
       <NeonLayer />
       <DrawInput />
+      <HandPen />
       <Controls />
+      <Suspense fallback={null}>
+        <Hint />
+      </Suspense>
     </>
   );
 };

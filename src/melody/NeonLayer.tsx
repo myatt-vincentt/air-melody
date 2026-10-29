@@ -10,7 +10,8 @@
 //
 // The playhead is a thin magenta line with a soft glow, drawn in the same
 // pass. Each note is a burst of the stroke's colour, brightened, at the spot
-// where the playhead touched it, shown when the note is heard.
+// where the playhead touched it, shown when the note is heard. Each tracked
+// hand has a small ring at its pinch point (HandPen.tsx).
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
@@ -39,6 +40,7 @@ import {
 import { INSTRUMENTS, instrumentIndex, PLAYHEAD_HEX } from "./instruments";
 import { fieldFor, RAIL, tubeRadius } from "./layout";
 import { ROWS, TICKS } from "./music";
+import { pens } from "./HandPen";
 import { sequencer } from "./sequencer";
 import { drawing, MAX_POINTS } from "./state";
 
@@ -270,6 +272,44 @@ const hitFragment = /* glsl */ `
   }
 `;
 
+// --- the hand rings ----------------------------------------------------------
+
+const ringVertex = /* glsl */ `
+  attribute float shown;
+  attribute float filled;
+  uniform float pixelRatio;
+  uniform float size;
+  varying float vShown;
+  varying float vFilled;
+  void main() {
+    gl_Position = vec4(position.xy, 0.0, 1.0);
+    gl_PointSize = size * pixelRatio;
+    vShown = shown;
+    vFilled = filled;
+  }
+`;
+
+const ringFragment = /* glsl */ `
+  uniform vec3 color;
+  uniform float px;
+  varying float vShown;
+  varying float vFilled;
+  void main() {
+    if (vShown <= 0.01) discard;
+    float r = length(gl_PointCoord - 0.5) * 2.0;
+    // Open: a thin ring. Pinched: a bright filled dot inside it.
+    float ring = 1.0 - smoothstep(0.0, px * 1.4, abs(r - 0.5));
+    float dot = (1.0 - smoothstep(0.36 - px, 0.36 + px, r)) * vFilled;
+    float glow = exp(-pow(max(0.0, r - 0.3), 2.0) * 22.0) * (0.25 + 0.35 * vFilled);
+    vec3 c = mix(color, vec3(1.0), 0.35 * max(ring, dot));
+    float i = clamp(max(ring * 0.95, dot) + glow * (1.0 - max(ring, dot)), 0.0, 1.0) * vShown;
+    gl_FragColor = vec4(c * i, i * 0.8);
+  }
+`;
+
+/** The ring's size (CSS px): outer edge at half of it. */
+const RING_PX = 52;
+
 const easeOut = (t: number) => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
 
 /** Writes every stroke's segments, in pixels; returns how many. */
@@ -459,6 +499,35 @@ export const NeonLayer = () => {
     return { g, attrs, material, tints };
   }, []);
 
+  const rings = useMemo(() => {
+    const g = new BufferGeometry();
+    const attrs = {
+      position: new BufferAttribute(new Float32Array(2 * 3), 3),
+      shown: new BufferAttribute(new Float32Array(2), 1),
+      filled: new BufferAttribute(new Float32Array(2), 1),
+    };
+    Object.entries(attrs).forEach(([n, a]) => g.setAttribute(n, a));
+    g.boundingSphere = new Sphere(new Vector3(), 1);
+    const colors = INSTRUMENTS.map((i) => new Color(i.hex));
+    const material = new ShaderMaterial({
+      vertexShader: ringVertex,
+      fragmentShader: ringFragment,
+      uniforms: {
+        pixelRatio: { value: 1 },
+        size: { value: RING_PX },
+        px: { value: 2 / RING_PX },
+        color: { value: colors[0].clone() },
+      },
+      blending: CustomBlending,
+      blendSrc: OneFactor,
+      blendDst: OneMinusSrcAlphaFactor,
+      depthTest: false,
+      depthWrite: false,
+      transparent: true,
+    });
+    return { g, attrs, material, colors };
+  }, []);
+
   const drawn = useRef({ version: -1, w: 0, h: 0, segments: 0 });
   const bufferSize = useMemo(() => new Vector2(), []);
   const clear = useMemo(() => new Color(), []);
@@ -547,6 +616,22 @@ export const NeonLayer = () => {
       a.needsUpdate = true;
     });
     hits.material.uniforms.pixelRatio.value = pxScale;
+
+    // The hand rings, in the chosen instrument's colour.
+    const ra = rings.attrs;
+    [pens.left, pens.right].forEach((p, i) => {
+      ra.position.setXYZ(i, p.u * 2 - 1, 1 - p.v * 2, 0);
+      ra.shown.setX(i, p.shown);
+      ra.filled.setX(i, p.filled);
+    });
+    Object.values(ra).forEach((a) => {
+      // eslint-disable-next-line no-param-reassign
+      a.needsUpdate = true;
+    });
+    rings.material.uniforms.pixelRatio.value = pxScale;
+    rings.material.uniforms.color.value.copy(
+      rings.colors[instrumentIndex(drawing.instrument())],
+    );
   });
 
   return (
@@ -559,6 +644,12 @@ export const NeonLayer = () => {
         material={hits.material}
         frustumCulled={false}
         renderOrder={999}
+      />
+      <points
+        geometry={rings.g}
+        material={rings.material}
+        frustumCulled={false}
+        renderOrder={1000}
       />
     </>
   );

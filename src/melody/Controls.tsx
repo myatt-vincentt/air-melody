@@ -35,8 +35,8 @@ const CSS = `
 .am-rail { position: absolute; left: 0; width: ${RAIL - 6}px; border-left: 0;
   border-radius: 0 12px 12px 0; }
 .am-note { position: absolute; left: 0; width: ${RAIL - 6}px; text-align: center;
-  transform: translateY(-50%); font: 600 11px/1 system-ui, -apple-system, sans-serif;
-  letter-spacing: .02em; font-variant-numeric: tabular-nums; opacity: .92; }
+  transform: translateY(-50%); font: 600 13px/1 system-ui, -apple-system, sans-serif;
+  letter-spacing: 0; font-variant-numeric: tabular-nums; opacity: .92; }
 .am-note.c { opacity: 1; font-weight: 700; }
 .am-band { position: absolute; left: 50%; transform: translateX(-50%);
   bottom: calc(env(safe-area-inset-bottom) + 24px); display: flex; align-items: center; gap: 10px; }

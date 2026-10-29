@@ -1,7 +1,7 @@
 # Air Melody
 
-Draw glowing lines over the camera and a looping playhead plays them as
-music: height is pitch, across is time. Four instruments made in code with
+Pinch in the air (or drag a finger) to draw glowing lines over the camera,
+and a looping playhead plays them as music: height is pitch, across is time. Four instruments made in code with
 Web Audio, each with its own stroke colour. See `PLAN.md`.
 
 In development `window.__melody` shows the drawing, the playhead and a count

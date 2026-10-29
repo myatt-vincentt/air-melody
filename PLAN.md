@@ -13,9 +13,19 @@ them as music. Height is pitch, across is time.
 - **The loop.** A magenta playhead with a soft glow sweeps left to right and
   loops forever: 2 bars of 4/4 at 96 BPM, about 5 s across the screen, 16
   ticks (8th notes).
-- **Drawing.** Drag with a finger or the mouse to draw a stroke; tap or click
-  to drop a dot. Strokes are glossy neon tubes: a bright core, glassy edges
-  with a highlight, rounded ends and a soft glow.
+- **Drawing in the air.** Pinch (thumb tip to index tip) to put the pen down,
+  open the hand to lift it; the line follows the pinch point, right at the
+  fingertips, in the chosen instrument. A quick pinch drops a dot. Either
+  hand draws, and two hands draw at once, each its own stroke. Hands are
+  read about 12 times a second and the pen glides on a smooth curve between
+  readings. The pinch has to hold for two readings, opens a little later
+  than it closes (so it doesn't flicker), and doesn't count for a fist, two
+  hands together, or a hand at the edge or below the drawing area. Each
+  tracked hand shows a small glowing ring at its pinch point in the
+  instrument's colour: hollow while open, filled while pinched.
+- **Drawing by touch.** Drag with a finger or the mouse to draw a stroke; tap
+  or click to drop a dot. Strokes are glossy neon tubes: a bright core,
+  glassy edges with a highlight, rounded ends and a soft glow.
 - **Notes.** Each row is a note of C major pentatonic from C4 to C6 (11 rows),
   so any scribble is in tune. A stroke plays when the playhead reaches it (on
   the nearest 16th) and again every 8th note while it stays under the
@@ -29,14 +39,14 @@ them as music. Height is pitch, across is time.
   control band; the trash button clears the drawing.
 - **Sound.** Browsers allow sound only after a tap: until then a speaker
   pulses low in the middle with "Tap to play". That first tap only turns the
-  sound on; a drag that starts the session still draws. Notes are booked
+  sound on; a drag that starts the session still draws. A pinch also turns
+  the sound on where the browser allows it without a tap (not on iPhone). Notes are booked
   ahead on the audio clock, every note has short fades in and out, and
   everything runs through a light room reverb, a compressor and a limiter.
+- **Hint.** Once the sound is on, a small see-through ghost hand low in the
+  middle pinches and draws a short wave (a faint line in the chosen colour
+  follows its fingertips), opens and glides back. It goes for good after
+  your first stroke, by hand or by touch.
 - **Demo.** On the first visit a short phrase is already drawn (a marimba
   line, a soft-keys arc and two pluck dots). It plays once the sound is on
   and goes with clear.
-
-## Next
-
-- Step 2: draw in the air with a pinch (hand tracking), a ghost-hand hint,
-  polish.

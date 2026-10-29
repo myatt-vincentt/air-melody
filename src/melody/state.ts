@@ -20,6 +20,8 @@ export const MAX_POINTS = 6000;
 let strokes: Stroke[] = [];
 let nextId = 1;
 let instrument: InstrumentId = "marimba";
+/** True once the person has drawn something themselves (not the demo). */
+let drew = false;
 let version = 0;
 const listeners = new Set<() => void>();
 
@@ -47,14 +49,17 @@ export const drawing = {
   strokes: () => strokes,
   version: () => version,
   instrument: () => instrument,
+  /** True once the person has drawn something themselves (not the demo). */
+  drewOwn: () => drew,
   setInstrument: (id: InstrumentId) => {
     instrument = id;
     changed();
   },
-  /** Starts a stroke at a point, in the chosen instrument. */
+  /** Starts a stroke of the person's own at a point, in the chosen instrument. */
   begin: (p: Point, as: InstrumentId = instrument): Stroke => {
     const s: Stroke = { id: nextId, instrument: as, points: [p], dot: true };
     nextId += 1;
+    drew = true;
     strokes = [...strokes, s];
     trim();
     changed();

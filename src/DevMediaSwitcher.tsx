@@ -19,7 +19,7 @@
 // Never reaches production: Scene.tsx lazy-imports this module behind an inline
 // `process.env.NODE_ENV` check, which esbuild folds.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ComponentType } from "react";
+import type { ComponentType, CSSProperties } from "react";
 import { Html } from "@react-three/drei";
 import { XRMediaSource } from "@vincentt-xr/sdk";
 import {
@@ -41,6 +41,7 @@ type SwitcherModule = {
     value: Preset;
     onChange: (p: Preset) => void;
     sources: Preset[];
+    style?: CSSProperties;
   }>;
   sources: Preset[];
 };
@@ -105,9 +106,17 @@ const streamFromClip = async (url: string) => {
     video.onloadeddata = () => resolve();
     video.onerror = () => reject(new Error(`failed to load ${url}`));
   });
+  // The app fills the window and cover-fits the camera. A portrait clip in a
+  // wider window would lose the face to that crop, so the clip is set in a
+  // frame of the window's shape (at load), dark at the sides: the cover-fit
+  // then crops nothing.
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  const windowAspect = window.innerWidth / Math.max(1, window.innerHeight);
   const canvas = document.createElement("canvas");
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+  canvas.width = Math.max(vw, Math.round(vh * windowAspect));
+  canvas.height = vh;
+  const left = (canvas.width - vw) / 2;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("2d canvas context unavailable");
   let stopped = false;
@@ -115,9 +124,11 @@ const streamFromClip = async (url: string) => {
   const draw = () => {
     if (stopped) return;
     if (video.paused) video.play().catch(() => {});
+    ctx.fillStyle = "#16171a";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     ctx.scale(-1, 1);
-    ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, -left - vw, 0, vw, vh);
     ctx.restore();
     raf = requestAnimationFrame(draw);
   };
@@ -211,7 +222,13 @@ const DevMediaSwitcher = () => {
     // the HUD's buttons and the dev mouse still work under it.
     <Html fullscreen zIndexRange={[40, 0]} style={{ pointerEvents: "none" }}>
       <div style={{ pointerEvents: "auto" }}>
-        <Switcher value={value} onChange={apply} sources={mod.sources} />
+        {/* Top right, clear of the note names on the left edge. */}
+        <Switcher
+          value={value}
+          onChange={apply}
+          sources={mod.sources}
+          style={{ left: "auto", right: 16 }}
+        />
       </div>
     </Html>
   );
