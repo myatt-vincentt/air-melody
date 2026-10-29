@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   crossings,
+  DOT_REACH,
+  glidePitch,
   LOOP,
   noteName,
   ROWS,
@@ -12,6 +14,7 @@ import {
   STEP,
   STEPS,
   stepU,
+  touchesAt,
 } from "./music";
 
 const field = { top: 0.05, bottom: 0.9 };
@@ -116,5 +119,55 @@ describe("when a stroke plays", () => {
   it("plays again when it comes back after a gap", () => {
     expect(shouldPlay(10, true, false, 9)).toBe(true);
     expect(shouldPlay(10, false, true, 8)).toBe(false);
+  });
+});
+
+describe("continuous: where lines cross the playhead", () => {
+  const aspect = 2;
+  it("finds the exact height and the slope", () => {
+    const line = [
+      { u: 0.1, v: 0.5 },
+      { u: 0.5, v: 0.3 },
+    ];
+    const [t] = touchesAt(line, 0.3, aspect);
+    expect(t.v).toBeCloseTo(0.4, 6);
+    // 0.2 of the height over 0.4 of the width, on a screen twice as tall: 1.
+    expect(t.slope).toBeCloseTo(1, 3);
+    expect(touchesAt(line, 0.6, aspect)).toHaveLength(0);
+  });
+
+  it("finds each crossing of a loop and holds a dot briefly", () => {
+    const loop = Array.from({ length: 64 }, (_, i) => {
+      const a = (i / 63) * Math.PI * 2;
+      return { u: 0.5 + Math.cos(a) * 0.05, v: 0.5 + Math.sin(a) * 0.05 };
+    });
+    expect(touchesAt(loop, 0.5, aspect)).toHaveLength(2);
+    expect(
+      touchesAt([{ u: 0.3, v: 0.2 }], 0.3 + DOT_REACH / 2, aspect),
+    ).toHaveLength(1);
+    expect(
+      touchesAt([{ u: 0.3, v: 0.2 }], 0.3 + DOT_REACH * 2, aspect),
+    ).toHaveLength(0);
+  });
+});
+
+describe("continuous: the gliding pitch", () => {
+  it("settles onto the scale where the line is flat", () => {
+    const v = rowV(4, field) - 0.2 * ((field.bottom - field.top) / (ROWS - 1));
+    const flat = glidePitch(v, 0, field);
+    expect(flat.exact).toBeCloseTo(4.2, 6);
+    expect(Math.abs(flat.midi - SCALE[4])).toBeLessThan(0.2);
+  });
+
+  it("slides between notes where the line is steep", () => {
+    const v = rowV(4, field) - 0.5 * ((field.bottom - field.top) / (ROWS - 1));
+    const steep = glidePitch(v, 2, field);
+    expect(steep.pull).toBe(0);
+    expect(steep.midi).toBeCloseTo((SCALE[4] + SCALE[5]) / 2, 6);
+  });
+
+  it("stays within the range", () => {
+    expect(glidePitch(2, 0, field).midi).toBe(SCALE[0]);
+    expect(glidePitch(-1, 0, field).midi).toBe(SCALE[ROWS - 1]);
   });
 });

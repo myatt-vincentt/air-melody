@@ -32,6 +32,20 @@ them as music. Height is pitch, across is time.
   playhead. Strokes under the playhead together play as a chord. Each note
   flares the stroke and bursts in its colour, brightened, where the playhead
   touches it.
+- **Two ways to play** (one for all lines, chosen with two wordless chips in
+  the control band: dots = Notes, a wave = Continuous; Notes by default):
+  - **Notes** (above): notes on the steps.
+  - **Continuous**: every point of a line sounds. While the playhead is over
+    a line, one held tone follows its height, so a wave is heard as a wave
+    and a slope as a slide. The pitch glides but settles onto the scale where
+    the line is flat or slow (pulled toward the nearest note, less the
+    steeper the line), with a short portamento. A tone fades in when the
+    playhead reaches a line and out when it leaves; several lines make a
+    chord (at most 6 tones). The tube glows along the stretch the playhead is
+    crossing and a bright bead rides the line. Held versions of the four
+    instruments: a smooth lead with gentle vibrato (lime), a soft pad (blue),
+    a warm filtered synth (pink) and a deep bass, an octave down (amber).
+  - Switching fades the held tones in or out, so nothing clicks.
 - **Instruments.** Four, all made in code with Web Audio (no sample files):
   marimba (lime), soft keys (sky blue), synth pluck (pink) and round bass
   (amber, an octave down). A stroke keeps the instrument it was drawn with,

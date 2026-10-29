@@ -19,7 +19,14 @@ export const MAX_POINTS = 6000;
 
 let strokes: Stroke[] = [];
 let nextId = 1;
+/**
+ * How every line plays: as notes on the steps, or as held tones that follow
+ * each line's height as the playhead crosses it.
+ */
+export type Mode = "notes" | "continuous";
+
 let instrument: InstrumentId = "marimba";
+let mode: Mode = "notes";
 /** True once the person has drawn something themselves (not the demo). */
 let drew = false;
 let version = 0;
@@ -49,6 +56,12 @@ export const drawing = {
   strokes: () => strokes,
   version: () => version,
   instrument: () => instrument,
+  mode: () => mode,
+  setMode: (m: Mode) => {
+    if (m === mode) return;
+    mode = m;
+    changed();
+  },
   /** True once the person has drawn something themselves (not the demo). */
   drewOwn: () => drew,
   setInstrument: (id: InstrumentId) => {

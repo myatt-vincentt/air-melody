@@ -12,8 +12,14 @@
 // big chord never distorts. Notes are booked ahead on the audio clock (see
 // sequencer.ts), so they land on time however busy the page is.
 //
+// Continuous mode plays held tones instead (see `hold`): the same four
+// colours as a smooth lead, a soft pad, a warm filtered synth and a deep
+// bass, each gliding to its new pitch and fading in and out, so nothing
+// clicks.
+//
 // Browsers only allow sound after a tap: `unlock()` is called from the first
 // tap or click and starts the audio.
+import { HeldVoice } from "./held";
 import type { InstrumentId } from "./instruments";
 
 type Voice = {
@@ -185,6 +191,15 @@ class SynthEngine {
 
   private reverb: GainNode | null = null;
 
+  private meterNode: AnalyserNode | null = null;
+
+  /** Held tones go through their own bus (metered on its own). */
+  private heldBus: GainNode | null = null;
+
+  private heldMeter: AnalyserNode | null = null;
+
+  private meterData: Float32Array<ArrayBuffer> | null = null;
+
   private voices: Voice[] = [];
 
   private listeners = new Set<() => void>();
@@ -268,8 +283,20 @@ class SynthEngine {
     comp.connect(limiter);
     limiter.connect(out);
     out.connect(ctx.destination);
+    const meter = ctx.createAnalyser();
+    meter.fftSize = 1024;
+    out.connect(meter);
     this.input = input;
     this.reverb = reverb;
+    this.meterNode = meter;
+    const heldBus = ctx.createGain();
+    heldBus.connect(input);
+    heldBus.connect(reverb);
+    const heldMeter = ctx.createAnalyser();
+    heldMeter.fftSize = 1024;
+    heldBus.connect(heldMeter);
+    this.heldBus = heldBus;
+    this.heldMeter = heldMeter;
   }
 
   /** The audio clock, as heard: the time of the sound leaving the speakers now. */
@@ -284,6 +311,47 @@ class SynthEngine {
       return Math.min(t, ctx.currentTime);
     }
     return ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0);
+  }
+
+  /** Starts a held tone at an audio-clock time (Continuous), or null without sound. */
+  hold(
+    instrument: InstrumentId,
+    hz: number,
+    at: number,
+    level: number,
+    fadeIn?: number,
+  ) {
+    const { ctx, heldBus } = this;
+    if (!ctx || !heldBus || ctx.state !== "running") return null;
+    return new HeldVoice(
+      ctx,
+      [heldBus],
+      instrument,
+      hz,
+      Math.max(at, ctx.currentTime),
+      level,
+      fadeIn,
+    );
+  }
+
+  /**
+   * Loudness right now, peak and RMS of the last ~20 ms: of the whole
+   * output, or of the held tones alone (`"held"`).
+   */
+  meter(which: "out" | "held" = "out") {
+    const m = which === "held" ? this.heldMeter : this.meterNode;
+    if (!m) return { peak: 0, rms: 0 };
+    if (!this.meterData || this.meterData.length !== m.fftSize)
+      this.meterData = new Float32Array(m.fftSize);
+    const d = this.meterData;
+    m.getFloatTimeDomainData(d);
+    let peak = 0;
+    let sum = 0;
+    for (let i = 0; i < d.length; i += 1) {
+      peak = Math.max(peak, Math.abs(d[i]));
+      sum += d[i] * d[i];
+    }
+    return { peak, rms: Math.sqrt(sum / d.length) };
   }
 
   /** Plays a note at an audio-clock time. `gain` scales it (for chords). */

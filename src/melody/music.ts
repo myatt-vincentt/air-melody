@@ -132,3 +132,91 @@ export const shouldPlay = (
   if (!wasPresent || lastPlayed === null) return true;
   return step - lastPlayed >= REPEAT_STEPS;
 };
+
+// --- Continuous: every point of a line sounds --------------------------------
+
+/** Where a line crosses the playhead line exactly, and how steep it is there. */
+export type Touch = { v: number; slope: number };
+
+/** A dot sounds while the playhead is within this of it (share of the width). */
+export const DOT_REACH = 0.5 / STEPS;
+
+/**
+ * Every place a stroke crosses the vertical line at `x` (share of the
+ * width), top to bottom, with the line's steepness there (screen pixels up
+ * per pixel across, from a few pixels either side). `aspect` is the screen's
+ * height over its width; `reach` how far either side the slope is read.
+ */
+export const touchesAt = (
+  points: readonly Point[],
+  x: number,
+  aspect: number,
+  reach = 0.02,
+): Touch[] => {
+  if (points.length === 0) return [];
+  if (points.length === 1) {
+    const p = points[0];
+    return Math.abs(p.u - x) < DOT_REACH ? [{ v: p.v, slope: 0 }] : [];
+  }
+  const at = (xx: number) => {
+    const out: number[] = [];
+    for (let i = 0; i < points.length - 1; i += 1) {
+      const a = points[i];
+      const b = points[i + 1];
+      const lo = Math.min(a.u, b.u);
+      const hi = Math.max(a.u, b.u);
+      if (hi > lo && xx >= lo && xx < hi)
+        out.push(a.v + ((b.v - a.v) * (xx - a.u)) / (b.u - a.u));
+    }
+    return out;
+  };
+  const here = at(x).sort((p, q) => p - q);
+  if (here.length === 0) return [];
+  const left = at(x - reach);
+  const right = at(x + reach);
+  const nearest = (vs: number[], v: number) =>
+    vs.reduce<number | null>(
+      (best, c) =>
+        best === null || Math.abs(c - v) < Math.abs(best - v) ? c : best,
+      null,
+    );
+  return here.map((v) => {
+    const l = nearest(left, v);
+    const r = nearest(right, v);
+    let slope = 0;
+    if (l !== null && r !== null) slope = ((r - l) * aspect) / (2 * reach);
+    else if (r !== null) slope = ((r - v) * aspect) / reach;
+    else if (l !== null) slope = ((v - l) * aspect) / reach;
+    return { v, slope: Math.abs(slope) };
+  });
+};
+
+/** Snapping: full on lines flatter than this slope, none on lines steeper than that. */
+export const SNAP_SLOPE = [0.12, 0.8] as const;
+/** How close to the note a flat line settles (1 = exactly on it). */
+export const SNAP_MAX = 0.94;
+
+const smoothstep = (a: number, b: number, x: number) => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+
+/**
+ * The pitch of a line at a height, gliding but settling onto the scale: the
+ * exact height between rows, pulled toward the nearest row the flatter the
+ * line is. Returns the row (with its fraction) and the MIDI pitch (with its
+ * fraction), sliding between neighbouring scale notes.
+ */
+export const glidePitch = (v: number, slope: number, field: Field) => {
+  const exact = Math.min(
+    ROWS - 1,
+    Math.max(0, ((field.bottom - v) / (field.bottom - field.top)) * (ROWS - 1)),
+  );
+  const near = Math.round(exact);
+  const pull = (1 - smoothstep(SNAP_SLOPE[0], SNAP_SLOPE[1], slope)) * SNAP_MAX;
+  const row = exact + (near - exact) * pull;
+  const lo = Math.floor(row);
+  const hi = Math.min(ROWS - 1, lo + 1);
+  const midi = SCALE[lo] + (SCALE[hi] - SCALE[lo]) * (row - lo);
+  return { exact, row, midi, pull };
+};

@@ -16,11 +16,12 @@ import { NeonLayer } from "./NeonLayer";
 import { sequencer } from "./sequencer";
 
 export const MelodyScene = () => {
+  const width = useThree((s) => s.size.width);
   const height = useThree((s) => s.size.height);
 
   useEffect(() => {
-    sequencer.setScreenHeight(height);
-  }, [height]);
+    sequencer.setScreenSize(width, height);
+  }, [width, height]);
 
   useEffect(() => {
     showDemo(fieldFor(height));

@@ -6,6 +6,10 @@
 //   soundOn()   whether the sound is running
 //   pens()      each hand's ring: shown, filled (pinched), where
 //   drewOwn()   whether the person has drawn yet (the hint goes then)
+//   mode(), setMode(m)   "notes" or "continuous"
+//   voices()    held tones sounding now (Continuous)
+//   glideLog    the held tones' pitches booked lately: time, line, Hz, snap
+//   meter(w)    loudness now, peak and RMS: the output, or "held" tones only
 //   clear(), setInstrument(id)
 // Scene.tsx lazy-imports this behind an inline NODE_ENV check, so it never
 // reaches production.
@@ -16,7 +20,7 @@ import { pens } from "./HandPen";
 import type { InstrumentId } from "./instruments";
 import { LOOP, noteName } from "./music";
 import { sequencer } from "./sequencer";
-import { drawing } from "./state";
+import { drawing, type Mode } from "./state";
 
 const DevDebug = () => {
   useEffect(() => {
@@ -39,6 +43,13 @@ const DevDebug = () => {
         return sequencer.log.map((n) => ({ ...n, name: noteName(n.midi) }));
       },
       soundOn: () => synth.running,
+      mode: () => drawing.mode(),
+      setMode: (m: Mode) => drawing.setMode(m),
+      voices: () => sequencer.voices,
+      get glideLog() {
+        return sequencer.glideLog.map((g) => ({ ...g }));
+      },
+      meter: (which?: "out" | "held") => synth.meter(which),
       pens: () => ({ left: { ...pens.left }, right: { ...pens.right } }),
       drewOwn: () => drawing.drewOwn(),
       instrument: () => drawing.instrument(),

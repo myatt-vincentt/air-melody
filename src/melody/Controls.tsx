@@ -2,7 +2,9 @@
 //   - the note names, small, on a slim rail along the left edge, one at
 //     each row of the grid
 //   - the control band at the bottom, wordless: the four instruments as
-//     chips in their stroke colour with a tiny icon, then clear
+//     chips in their stroke colour with a tiny icon, the two play modes
+//     (dots = Notes, a wave = Continuous; the active one ringed in Arles),
+//     then clear
 //   - until the sound is on: a softly pulsing speaker, low in the middle,
 //     with "Tap to play". Any tap or click turns the sound on.
 // Nothing sits over the face.
@@ -15,7 +17,7 @@ import { synth } from "./audio";
 import { INSTRUMENTS, type InstrumentId } from "./instruments";
 import { fieldFor, RAIL } from "./layout";
 import { noteName, rowV, SCALE } from "./music";
-import { drawing, useDrawingVersion } from "./state";
+import { drawing, useDrawingVersion, type Mode } from "./state";
 
 const ARLES = "#f4d968";
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
@@ -53,6 +55,14 @@ const CSS = `
   box-shadow: inset 0 2px 4px rgb(255 255 255 / .45), inset 0 -3px 5px rgb(0 0 0 / .22),
     0 0 12px var(--glow); transition: box-shadow 160ms ease-out; }
 .am-chip.on { box-shadow: 0 0 0 2px ${ARLES}; }
+.am-mode { width: 38px; height: 38px; border-radius: 50%; }
+.am-mode.on { box-shadow: inset 0 0 0 2px ${ARLES}; }
+@media (max-width: 379px) {
+  .am-band { gap: 6px; }
+  .am-seg { gap: 2px; padding: 3px; }
+  .am-round { width: 40px; height: 40px; }
+  .am-chip .am-dot { width: 30px; height: 30px; }
+  .am-mode { width: 36px; height: 36px; } }
 .am-chip.on .am-dot { box-shadow: inset 0 2px 4px rgb(255 255 255 / .45),
   inset 0 -3px 5px rgb(0 0 0 / .22), 0 0 18px var(--glow); }
 .am-start { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 96px);
@@ -117,13 +127,35 @@ const INSTRUMENT_ICON: Record<InstrumentId, ReactNode> = {
       <path d="M3 13h3l2-8 3 14 2.5-9 2 5 1.5-2H21" />
     </Icon>
   ),
-  // A slow, round low wave.
+  // A speaker cone, for the deep round bass.
   bass: (
-    <Icon size={18} stroke={2.4}>
-      <path d="M3 12c2.5-6 6.5-6 9 0s6.5 6 9 0" />
+    <Icon size={18} stroke={2.2}>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="3" fill="currentColor" />
     </Icon>
   ),
 };
+
+/** The play modes: separate notes, or one continuous line. */
+const MODE_ICON: Record<Mode, ReactNode> = {
+  notes: (
+    <Icon>
+      <circle cx="5.5" cy="15" r="2" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="9" r="2" fill="currentColor" stroke="none" />
+      <circle cx="18.5" cy="13" r="2" fill="currentColor" stroke="none" />
+    </Icon>
+  ),
+  continuous: (
+    <Icon>
+      <path d="M3 15c2.5 0 3.5-6 6.5-6s3.5 5 6 5 3-3 5.5-3" />
+    </Icon>
+  ),
+};
+
+const MODES: { id: Mode; label: string }[] = [
+  { id: "notes", label: "Play as notes" },
+  { id: "continuous", label: "Play as a continuous line" },
+];
 
 const ClearIcon = () => (
   <Icon>
@@ -154,6 +186,7 @@ export const Controls = () => {
   const height = useThree((s) => s.size.height);
   const soundOn = useSoundOn();
   const current = drawing.instrument();
+  const mode = drawing.mode();
   const empty = drawing.strokes().length === 0;
   const field = fieldFor(height);
   const rowsTop = field.top * height;
@@ -231,6 +264,22 @@ export const Controls = () => {
                 >
                   {INSTRUMENT_ICON[inst.id]}
                 </span>
+              </button>
+            ))}
+          </div>
+          <div className="am-seg am-glass" role="radiogroup" aria-label="Play">
+            {MODES.map((m) => (
+              <button
+                type="button"
+                key={m.id}
+                role="radio"
+                aria-checked={mode === m.id}
+                aria-label={m.label}
+                data-mode={m.id}
+                className={`am-btn am-mode ${mode === m.id ? "on" : ""}`}
+                onClick={() => drawing.setMode(m.id)}
+              >
+                {MODE_ICON[m.id]}
               </button>
             ))}
           </div>

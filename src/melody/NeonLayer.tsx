@@ -11,7 +11,9 @@
 // The playhead is a thin magenta line with a soft glow, drawn in the same
 // pass. Each note is a burst of the stroke's colour, brightened, at the spot
 // where the playhead touched it, shown when the note is heard. Each tracked
-// hand has a small ring at its pinch point (HandPen.tsx).
+// hand has a small ring at its pinch point (HandPen.tsx). In Continuous mode
+// a bright bead rides each line at the playhead instead, and the tube glows
+// along the stretch it is crossing.
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
@@ -41,7 +43,7 @@ import { INSTRUMENTS, instrumentIndex, PLAYHEAD_HEX } from "./instruments";
 import { fieldFor, RAIL, tubeRadius } from "./layout";
 import { ROWS, TICKS } from "./music";
 import { pens } from "./HandPen";
-import { sequencer } from "./sequencer";
+import { heldTouches, sequencer } from "./sequencer";
 import { drawing, MAX_POINTS } from "./state";
 
 const LOOK = {
@@ -55,6 +57,8 @@ const LOOK = {
   hitRise: 0.05,
   hitFade: 0.6,
   hitSize: 14,
+  /** Continuous: the bead riding the line (tube radii). */
+  beadSize: 8,
 };
 
 const MAX_SEGMENTS = MAX_POINTS + 256;
@@ -216,11 +220,14 @@ const fullFragment = /* glsl */ `
     vec4 acc = grid(p);
     vec4 fl = vec4(0.0);
     float spread = radius * radius * 10.0;
+    // A flash marked "wide" (w >= 10) lights a longer stretch: Continuous.
     for (int i = 0; i < FLASHES; i++) {
       vec4 f = flashes[i];
       if (f.z <= 0.0) continue;
       vec2 d = p - f.xy;
-      fl += vec4(equal(vec4(f.w), vec4(0.0, 1.0, 2.0, 3.0))) * f.z * exp(-dot(d, d) / spread);
+      float wide = f.w >= 9.5 ? 1.0 : 0.0;
+      float ch = f.w - wide * 10.0;
+      fl += vec4(equal(vec4(ch), vec4(0.0, 1.0, 2.0, 3.0))) * f.z * exp(-dot(d, d) / (spread * mix(1.0, 3.5, wide)));
     }
     fl = min(fl, vec4(1.0));
     layer(k.r, vec2(gx.r, gy.r), colors[0], fl.r, acc);
@@ -588,6 +595,30 @@ export const NeonLayer = () => {
     let k = 0;
     let f = 0;
     const flashes = u.flashes.value as Vector4[];
+    // Continuous: a bright bead rides each line at the playhead, and the
+    // tube glows along the stretch it is crossing.
+    if (drawing.mode() === "continuous") {
+      heldTouches(
+        drawing.strokes(),
+        sequencer.playhead(),
+        width,
+        height,
+      ).forEach((t) => {
+        const ch = instrumentIndex(t.instrument);
+        if (k < MAX_HITS) {
+          ha.position.setXYZ(k, t.u * 2 - 1, 1 - t.v * 2, 0);
+          ha.size.setX(k, r * LOOK.beadSize);
+          ha.alpha.setX(k, 1);
+          const c = hits.tints[ch];
+          ha.tint.setXYZ(k, c.r, c.g, c.b);
+          k += 1;
+        }
+        if (f < FLASHES) {
+          flashes[f].set(t.u * width, t.v * height, 0.85, ch + 10);
+          f += 1;
+        }
+      });
+    }
     sequencer.hits.forEach((h) => {
       const age = now - h.time;
       if (age < 0 || age > LOOK.hitFade + LOOK.hitRise || k >= MAX_HITS) return;
