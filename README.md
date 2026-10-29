@@ -1,4 +1,13 @@
-# v2-template
+# Air Melody
+
+Draw glowing lines over the camera and a looping playhead plays them as
+music: height is pitch, across is time. Four instruments made in code with
+Web Audio, each with its own stroke colour. See `PLAN.md`.
+
+In development `window.__melody` shows the drawing, the playhead and a count
+of the notes played.
+
+## Template
 
 The Vincentt starter app: a real React + R3F + Vincentt XR SDK (`@vincentt-xr/sdk`)
 WebXR app, bundled by esbuild.

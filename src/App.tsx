@@ -5,7 +5,6 @@ import {
   XRScene,
   VideoBackground,
   XRMediaSource,
-  AspectRatioContainer,
 } from "@vincentt-xr/sdk";
 import { useXRContext, useXRReady, useXRError } from "@vincentt-xr/sdk/low-level";
 import { mountViewerBeacon, reportSession } from "@vincentt-xr/analytics";
@@ -329,8 +328,9 @@ export const Shell = () => {
     };
   }, [applySource]);
 
+  // Air Melody: the picture fills the whole window (no 9:16 frame).
   return (
-    <AspectRatioContainer>
+    <div style={{ position: "fixed", inset: 0 }}>
       <XRScene
         loadingComponent={<Loading shouldFadeOut={ready} />}
         errorComponent={<CameraError />}
@@ -362,7 +362,7 @@ export const Shell = () => {
           <MobileXRAcceptanceHarness ready={ready} error={xrError?.message} />
         </Suspense>
       ) : null}
-    </AspectRatioContainer>
+    </div>
   );
 };
 

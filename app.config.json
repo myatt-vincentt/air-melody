@@ -1,9 +1,10 @@
 {
-  "title": "XR App - Vincentt",
-  "description": "An AR experience built with Vincentt",
+  "title": "Air Melody",
+  "description": "Draw lines in the air and a looping playhead plays them as music",
   "image": "/images/og-default.jpg",
-  "imageAlt": "Vincentt — Augmented Reality App builder",
+  "imageAlt": "Air Melody — a camera experience built with Vincentt",
   "imageWidth": 1200,
   "imageHeight": 630,
-  "imageType": "image/jpeg"
+  "imageType": "image/jpeg",
+  "url": "https://air-melody.vincentt.app"
 }
