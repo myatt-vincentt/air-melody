@@ -1,5 +1,6 @@
 // The only hint, wordless: a small see-through ghost hand (the SDK's hint
-// hand, no disc behind it) low in the middle of the screen. It pinches,
+// hand, no disc behind it) low in the middle of the screen, under the
+// control band. It pinches,
 // draws a short wave in the air (a faint line in the chosen instrument's
 // colour follows its fingertips), opens and glides back to start again. It
 // fades in once the sound is on and goes for good after your first stroke,
@@ -29,14 +30,14 @@ import {
 
 import { useSoundOn } from "./Controls";
 import { INSTRUMENTS, instrumentIndex } from "./instruments";
+import { bandBottom } from "./layout";
 import { drawing } from "./state";
 
 const HAND_URL = "/models/hand-v1.glb";
 
 const HINT = {
-  /** Hand height (CSS px), and its middle above the bottom edge. */
+  /** Hand height (CSS px). */
   px: 84,
-  above: 168,
   /** The wave: width and height (px). */
   span: 132,
   amp: 15,
@@ -209,7 +210,8 @@ export const Hint = () => {
     // Pinned low in the middle of the screen, facing the camera, sized in
     // screen pixels.
     const cx = size.width / 2;
-    const cy = size.height - HINT.above;
+    // In the middle of the space under the control band.
+    const cy = (bandBottom(size.height) + size.height) / 2 + 4;
     const tan = Math.tan(
       ((camera as { fov?: number }).fov ?? 45) * (Math.PI / 360),
     );

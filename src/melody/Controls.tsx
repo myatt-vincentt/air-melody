@@ -1,12 +1,16 @@
 // The page UI over the camera, on Night glass:
 //   - the note names, small, on a slim rail along the left edge, one at
 //     each row of the grid
-//   - the control band at the bottom, wordless: the four instruments as
+//   - the control band, wordless: the four instruments as
 //     chips in their stroke colour with a tiny icon, the two play modes
 //     (dots = Notes, a wave = Continuous; the active one ringed in Arles),
 //     then clear
-//   - until the sound is on: a softly pulsing speaker, low in the middle,
-//     with "Tap to play". Any tap or click turns the sound on.
+//   - until the sound is on: a softly pulsing speaker, low in the middle
+//     under the band, with "Tap to play". Any tap or click turns the sound on.
+// The band sits about three quarters of the way down, where a raised hand
+// reaches it: a pinch over a chip picks it (HandPen.tsx; clear needs a short
+// hold, shown as a ring filling around the trash), with a soft Arles glow
+// while a hand hovers. Touch is a plain tap.
 // Nothing sits over the face.
 import { useEffect, useSyncExternalStore } from "react";
 import type { CSSProperties, ReactNode } from "react";
@@ -15,7 +19,7 @@ import { useThree } from "@react-three/fiber";
 
 import { synth } from "./audio";
 import { INSTRUMENTS, type InstrumentId } from "./instruments";
-import { fieldFor, RAIL } from "./layout";
+import { BAND_AT, fieldFor, RAIL } from "./layout";
 import { noteName, rowV, SCALE } from "./music";
 import { drawing, useDrawingVersion, type Mode } from "./state";
 
@@ -32,21 +36,31 @@ const CSS = `
   box-shadow: inset 0 1px 1px rgb(255 255 255 / .22), 0 8px 24px rgb(0 0 0 / .22); }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .am-glass { background: rgb(35 37 40 / .82); } }
-.am-scrim { position: absolute; left: 0; right: 0; bottom: 0; height: 160px;
-  background: linear-gradient(rgb(35 37 40 / 0), rgb(35 37 40 / .45)); }
+.am-scrim { position: absolute; left: 0; right: 0; bottom: 0; top: ${BAND_AT * 100 - 16}%;
+  background: linear-gradient(rgb(35 37 40 / 0), rgb(35 37 40 / .4) 40%, rgb(35 37 40 / .5)); }
 .am-rail { position: absolute; left: 0; width: ${RAIL - 6}px; border-left: 0;
   border-radius: 0 12px 12px 0; }
 .am-note { position: absolute; left: 0; width: ${RAIL - 6}px; text-align: center;
   transform: translateY(-50%); font: 600 13px/1 system-ui, -apple-system, sans-serif;
   letter-spacing: 0; font-variant-numeric: tabular-nums; opacity: .92; }
 .am-note.c { opacity: 1; font-weight: 700; }
-.am-band { position: absolute; left: 50%; transform: translateX(-50%);
-  bottom: calc(env(safe-area-inset-bottom) + 24px); display: flex; align-items: center; gap: 10px; }
+.am-band { pointer-events: auto; position: absolute; left: 50%; top: ${BAND_AT * 100}%; transform: translate(-50%, -50%);
+  display: flex; align-items: center; gap: 10px; }
 .am-seg { pointer-events: auto; display: flex; gap: 4px; padding: 4px; border-radius: 999px; }
 .am-btn { pointer-events: auto; border: 0; padding: 0; margin: 0; color: inherit; background: transparent;
   display: grid; place-items: center; cursor: pointer; outline: none; touch-action: manipulation;
   transition: transform 160ms ease-out, box-shadow 160ms ease-out, opacity 160ms ease-out; }
 .am-btn:active { transform: scale(0.96); }
+.am-btn[data-hover="1"] { transform: scale(1.1);
+  box-shadow: 0 0 0 1px rgb(244 217 104 / .3), 0 0 20px 3px rgb(244 217 104 / .5); }
+.am-btn[data-press="1"] { animation: am-press 240ms ease-out; }
+@keyframes am-press { from { transform: scale(0.9); } to { transform: scale(1.1); } }
+.am-clear { position: relative; }
+.am-clear::before { content: ""; position: absolute; inset: -4px; border-radius: 50%;
+  background: conic-gradient(${ARLES} calc(var(--fill, 0) * 1turn), transparent 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  opacity: var(--fill-on, 0); transition: opacity 120ms ease-out; pointer-events: none; }
 .am-btn:focus-visible { box-shadow: 0 0 0 2px ${ARLES}; }
 .am-round { width: 44px; height: 44px; border-radius: 50%; flex: none; }
 .am-round.off { opacity: .45; }
@@ -65,7 +79,7 @@ const CSS = `
   .am-mode { width: 36px; height: 36px; } }
 .am-chip.on .am-dot { box-shadow: inset 0 2px 4px rgb(255 255 255 / .45),
   inset 0 -3px 5px rgb(0 0 0 / .22), 0 0 18px var(--glow); }
-.am-start { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 96px);
+.am-start { position: absolute; left: 50%; top: calc(${BAND_AT * 100}% + 44px);
   transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px;
   transition: opacity 160ms ease-out; }
 .am-start.gone { opacity: 0; }
@@ -77,7 +91,8 @@ const CSS = `
   white-space: nowrap; }
 @keyframes am-pulse { from { transform: scale(1); opacity: .9; } to { transform: scale(1.45); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .am-btn:active { transform: none; }
+  .am-btn:active, .am-btn[data-hover="1"] { transform: none; }
+  .am-btn[data-press="1"] { animation: none; }
   @keyframes am-pulse { from { opacity: .9; } to { opacity: 0; } } }
 `;
 
@@ -250,6 +265,7 @@ export const Controls = () => {
                 aria-checked={current === inst.id}
                 aria-label={inst.label}
                 data-instrument={inst.id}
+                data-hud="pick"
                 className={`am-btn am-round am-chip ${current === inst.id ? "on" : ""}`}
                 onClick={() => drawing.setInstrument(inst.id)}
               >
@@ -276,6 +292,7 @@ export const Controls = () => {
                 aria-checked={mode === m.id}
                 aria-label={m.label}
                 data-mode={m.id}
+                data-hud="pick"
                 className={`am-btn am-mode ${mode === m.id ? "on" : ""}`}
                 onClick={() => drawing.setMode(m.id)}
               >
@@ -287,7 +304,8 @@ export const Controls = () => {
             type="button"
             aria-label="Clear"
             data-action="clear"
-            className={`am-btn am-round am-glass ${empty ? "off" : ""}`}
+            data-hud="hold"
+            className={`am-btn am-round am-glass am-clear ${empty ? "off" : ""}`}
             onClick={() => drawing.clear()}
           >
             <ClearIcon />

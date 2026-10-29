@@ -1,13 +1,29 @@
 # Air Melody
 
-Pinch in the air (or drag a finger) to draw glowing lines over the camera,
-and a looping playhead plays them as music: height is pitch, across is time. Four instruments made in code with
-Web Audio, each with its own stroke colour. See `PLAN.md`.
+Draw music in the air. Pinch your fingers and draw glowing neon lines over the camera (or drag a
+finger), and a magenta playhead sweeps across and plays them: height is pitch, across is time.
+Every line is in tune (C major pentatonic over two octaves). Pick from four instruments made in
+code, each with its own colour, and layer them; play the lines as notes, or switch to Continuous
+and every line becomes one gliding, held tone, a wave heard as a wave. Pinch a chip in the control
+band to pick it, hold a pinch on the trash to clear. The picture fills the whole screen.
 
-In development `window.__melody` shows the drawing, the playhead and a count
-of the notes played.
+- Sound is Web Audio synthesis, no sample files (`src/melody/audio.ts`, `held.ts`), booked ahead
+  on the audio clock (`sequencer.ts`); a tap turns it on.
+- Strokes are drawn in screen space as glossy tubes from a "closeness" picture, one colour channel
+  per instrument (`NeonLayer.tsx`); the grid, playhead, glows and hand rings are in the same pass.
+- Hands: pinch drawing and chip picking in `HandPen.tsx` (`pen.ts` for the pinch and the glide),
+  hand targets in `hud.ts`; touch in `DrawInput.tsx`; the ghost-hand hint in `Hint.tsx` uses
+  `public/models/hand-v1.glb`.
+- `src/App.tsx` uses a full-window container instead of the 9:16 frame; re-apply after a template
+  upgrade.
+- Dev preview without a camera: the media switcher starts on the SDK's sample video (whole, with
+  side bars in a wide window); 1–4 pick an instrument, m switches Notes / Continuous, x clears;
+  `window.__melody` shows the drawing, the playhead, the notes and held tones, and has a pretend
+  hand. How it works: `PLAN.md`.
 
-## Template
+---
+
+# v2-template
 
 The Vincentt starter app: a real React + R3F + Vincentt XR SDK (`@vincentt-xr/sdk`)
 WebXR app, bundled by esbuild.
