@@ -7,6 +7,7 @@ code, each with its own colour, and layer them; play the lines as notes, or swit
 and every line becomes one gliding, held tone, a wave heard as a wave. Pinch a chip in the control
 band to pick it, hold a pinch on the trash to clear. The picture fills the whole screen.
 
+- Thumbnail: `public/images/air-melody-thumbnail.jpg` (the share image).
 - Sound is Web Audio synthesis, no sample files (`src/melody/audio.ts`, `held.ts`), booked ahead
   on the audio clock (`sequencer.ts`); a tap turns it on.
 - Strokes are drawn in screen space as glossy tubes from a "closeness" picture, one colour channel
